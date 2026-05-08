@@ -1,28 +1,70 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>SharkChat</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <title>SharkChat</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div id="app">
+    <header>
+      <h1>SharkChat</h1>
+      <div id="statusBar">
+        <div id="pingIndicator" class="ping good">Ping: <span id="pingValue">—</span> ms</div>
+        <div id="connectionState">Disconnected</div>
+      </div>
+    </header>
 
-<div id="container">
-    <h1>SharkChat</h1>
+    <main>
+      <section id="lobby">
+        <div class="card">
+          <div class="row">
+            <button id="createBtn" class="primary">Create Room</button>
+            <input id="joinCode" placeholder="Enter Room Code" maxlength="6" />
+            <button id="joinBtn">Join Room</button>
+          </div>
 
-    <div id="menu">
-        <button id="createBtn">Create Room</button>
-        <input id="joinCode" placeholder="Enter Room Code">
-        <button id="joinBtn">Join Room</button>
-    </div>
+          <div class="row small">
+            <label for="displayName">Display Name</label>
+            <input id="displayName" placeholder="Ace" maxlength="20" />
+            <label for="avatarColor">Avatar Color</label>
+            <input id="avatarColor" type="color" value="#1e90ff" />
+          </div>
+        </div>
+      </section>
 
-    <div id="room" style="display:none;">
-        <h2 id="roomCodeDisplay"></h2>
-        <button id="startCallBtn">Start Voice Call</button>
-        <button id="leaveBtn">Leave</button>
-    </div>
-</div>
+      <section id="room" class="hidden">
+        <div class="card">
+          <div id="roomHeader">
+            <div id="avatarPreview" class="avatar">A</div>
+            <div>
+              <h2 id="roomCodeDisplay">Room Code: —</h2>
+              <div id="memberList" class="members"></div>
+            </div>
+          </div>
 
-<script src="app.js"></script>
+          <div class="controls">
+            <button id="startCallBtn" class="primary">Start Voice Call</button>
+            <button id="muteBtn">Mute</button>
+            <button id="pttBtn">Push to Talk (Hold Space)</button>
+            <button id="leaveBtn" class="danger">Leave</button>
+          </div>
+
+          <div id="log" class="log"></div>
+        </div>
+      </section>
+
+      <div id="doom" class="hidden">
+        THE LAST HOPE IS DEAD. WE FALL INTO DARKNESS FOREVER
+      </div>
+    </main>
+
+    <footer>
+      <small>SharkChat • WebRTC • Codespaces</small>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>

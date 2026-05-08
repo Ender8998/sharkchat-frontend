@@ -1,49 +1,28 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SharkChat (Censored region version)</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <title>SharkChat</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="container">
-    <header class="header">
-      <div class="brand">
-        <h1 class="title">SharkChat</h1>
-        <div class="subtitle">Censored region version</div>
-      </div>
-    </header>
 
-    <section id="lobby" class="card">
-      <div class="controls">
-        <button id="createBtn" class="btn primary">Create Room</button>
-        <input id="joinCode" class="input" placeholder="Enter room code" />
-        <button id="joinBtn" class="btn">Join Room</button>
-      </div>
-      <div id="status" class="status">Idle</div>
-    </section>
+<div id="container">
+    <h1>SharkChat</h1>
 
-    <section id="room" class="card" hidden>
-      <div class="room-header">
-        <div>Room: <strong id="roomCode"></strong></div>
-        <div class="room-actions">
-          <button id="muteBtn" class="btn">Mute</button>
-          <button id="leaveBtn" class="btn secondary">Leave</button>
-        </div>
-      </div>
+    <div id="menu">
+        <button id="createBtn">Create Room</button>
+        <input id="joinCode" placeholder="Enter Room Code">
+        <button id="joinBtn">Join Room</button>
+    </div>
 
-      <ul id="peers" class="peers"></ul>
-      <div id="log" class="log"></div>
-    </section>
+    <div id="room" style="display:none;">
+        <h2 id="roomCodeDisplay"></h2>
+        <button id="startCallBtn">Start Voice Call</button>
+        <button id="leaveBtn">Leave</button>
+    </div>
+</div>
 
-    <footer class="footer">
-      <div>© <span id="year"></span> SharkChat</div>
-      <div class="credits">Made by Ender &amp; RDK</div>
-    </footer>
-  </main>
-
-  <script src="app.js"></script>
-  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+<script src="app.js"></script>
 </body>
 </html>

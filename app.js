@@ -1,6 +1,6 @@
-// app.js
-// Replace GAS_URL with your Apps Script exec URL before publishing
-// Leave WORKER_WSS_URL for later Cloudflare WSS (optional)
+// app.js - SharkChat (JSONP signaling ready)
+// Replace GAS_URL with your Apps Script exec URL (the /exec URL).
+// Leave WORKER_WSS_URL for later Cloudflare WSS (optional).
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzwEC0um4hPKhM_hl6MjV0ZD8pmHBUaQMbUnza9guMxM5VsdzPQOHzjvMPIBNXkKo7uqw/exec';
 const WORKER_WSS_URL = 'wss://REPLACE_WITH_YOUR_WORKER_DOMAIN/ws';
 
@@ -78,7 +78,7 @@ async function tryConnectWSS() {
     };
   } catch (err) {
     usingWSS = false;
-    log('WSS connect failed');
+    log('WSS connect failed: ' + err);
   }
 }
 
@@ -95,6 +95,7 @@ async function startAsCallee() {
   await ensureLocalStream();
   pc = createPeerConnection();
   pc.addTrack(localStream.getAudioTracks()[0], localStream);
+  // wait for offer via signaling; handleSignal will create answer
 }
 
 function createPeerConnection() {
@@ -127,7 +128,7 @@ async function handleSignal(msg) {
     if (!pc) return;
     await pc.setRemoteDescription({ type: 'answer', sdp: msg.sdp });
   } else if (msg.type === 'ice') {
-    try { await pc.addIceCandidate(msg.candidate); } catch (e) {}
+    try { await pc.addIceCandidate(msg.candidate); } catch (e) { log('ICE add error: ' + e); }
   } else if (msg.type === 'presence') {
     status('Peer muted: ' + (msg.muted ? 'yes' : 'no'));
   }
@@ -143,6 +144,7 @@ async function sendSignal(payload) {
     ws.send(JSON.stringify(payload));
     return;
   }
+  // fallback to GAS JSONP post
   await postGAS({ action: 'post', code: roomCode, message: JSON.stringify(payload) });
 }
 
@@ -173,20 +175,78 @@ function cleanupAndLeave() {
   status('Left');
 }
 
+/* ---------------------------
+   JSONP helper and postGAS
+   --------------------------- */
+
+// JSONP helper: call GAS via GET with callback
+function jsonpGet(url, params = {}, timeout = 15000) {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'cb_' + Math.random().toString(36).slice(2,9);
+    params.callback = callbackName;
+
+    // Build query string safely
+    const query = Object.keys(params).map(k => {
+      return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+    }).join('&');
+
+    const src = url + (url.includes('?') ? '&' : '?') + query;
+
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error('JSONP timeout'));
+    }, timeout);
+
+    window[callbackName] = (data) => {
+      clearTimeout(timer);
+      cleanup();
+      resolve(data);
+    };
+
+    function cleanup() {
+      try { delete window[callbackName]; } catch (e) {}
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    script.onerror = () => {
+      clearTimeout(timer);
+      cleanup();
+      reject(new Error('JSONP load error'));
+    };
+
+    document.head.appendChild(script);
+  });
+}
+
+// postGAS uses JSONP GET for create/post/poll actions
 async function postGAS(body) {
   try {
-    const r = await fetch(GAS_URL, {
-      method: 'POST',
-      body: JSON.stringify(body),
-      headers: { 'Content-Type': 'application/json' }
-    });
-    return await r.json();
+    // For safety, stringify message param if present
+    const params = {};
+    for (const k in body) {
+      if (body[k] === undefined || body[k] === null) continue;
+      // If message is an object, stringify it
+      if (k === 'message' && typeof body[k] === 'object') {
+        params[k] = JSON.stringify(body[k]);
+      } else {
+        params[k] = String(body[k]);
+      }
+    }
+    const res = await jsonpGet(GAS_URL, params);
+    return res;
   } catch (e) {
-    log('GAS post error: ' + e);
+    log('GAS JSONP error: ' + e);
     return null;
   }
 }
 
+/* ---------------------------
+   Utilities
+   --------------------------- */
 function el(id) { return document.getElementById(id); }
 function status(s) { statusEl.textContent = s; }
 function log(s) { const d = document.createElement('div'); d.textContent = s; logEl.appendChild(d); }

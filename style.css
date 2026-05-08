@@ -1,38 +1,133 @@
-body {
-    background: #000;
-    color: #fff;
-    font-family: Arial, sans-serif;
-    text-align: center;
-    margin: 0;
-    padding: 0;
+:root{
+  --bg:#050507;
+  --card:#0b0b0d;
+  --muted:#9aa0a6;
+  --accent:#1e90ff;
+  --danger:#ff3b3b;
+  --glass: rgba(255,255,255,0.03);
 }
 
-#container {
-    margin-top: 100px;
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:Inter,system-ui,Segoe UI,Roboto,Arial;
+  background: radial-gradient(1200px 600px at 10% 10%, rgba(30,144,255,0.06), transparent),
+              radial-gradient(900px 400px at 90% 90%, rgba(255,59,59,0.03), transparent),
+              var(--bg);
+  color:#e6eef6;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
 }
 
-input {
-    padding: 10px;
-    margin: 10px;
-    width: 200px;
-    background: #111;
-    border: 1px solid #444;
-    color: white;
+#app{width:100%;max-width:980px}
+
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
 }
 
-button {
-    padding: 10px 20px;
-    margin: 10px;
-    background: #111;
-    border: 1px solid #fff;
-    color: white;
-    cursor: pointer;
+h1{margin:0;font-size:20px;letter-spacing:1px}
+#statusBar{display:flex;gap:12px;align-items:center}
+#connectionState{font-size:13px;color:var(--muted)}
+
+.card{
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border:1px solid rgba(255,255,255,0.04);
+  padding:18px;
+  border-radius:12px;
+  box-shadow: 0 6px 30px rgba(0,0,0,0.6);
 }
 
-button:hover {
-    background: #222;
+.row{display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:10px}
+.row.small{justify-content:flex-start;flex-wrap:wrap}
+
+input[type="text"], input[type="color"], input{
+  background:var(--glass);
+  border:1px solid rgba(255,255,255,0.04);
+  color:var(--muted);
+  padding:10px;
+  border-radius:8px;
+  outline:none;
+  min-width:120px;
 }
 
-#room {
-    margin-top: 30px;
+button{
+  background:transparent;
+  border:1px solid rgba(255,255,255,0.06);
+  color:#e6eef6;
+  padding:10px 14px;
+  border-radius:8px;
+  cursor:pointer;
+  transition:all .12s ease;
+}
+
+button.primary{
+  background:linear-gradient(90deg,var(--accent),#4aa3ff);
+  border:none;
+  color:#001;
+  font-weight:600;
+  box-shadow:0 6px 18px rgba(30,144,255,0.12);
+}
+
+button.danger{
+  background:linear-gradient(90deg,var(--danger),#ff6b6b);
+  border:none;
+  color:#fff;
+}
+
+button:hover{transform:translateY(-2px)}
+.controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+
+.hidden{display:none}
+
+#roomHeader{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.avatar{
+  width:64px;height:64px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:22px;color:#fff;
+  background:linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  border:1px solid rgba(255,255,255,0.04);
+}
+
+.members{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.member{
+  display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;
+  background:rgba(255,255,255,0.02);font-size:13px;
+}
+
+.log{margin-top:12px;height:120px;overflow:auto;background:rgba(255,255,255,0.01);padding:10px;border-radius:8px;font-size:13px;color:var(--muted)}
+
+#pingIndicator{font-weight:600;padding:6px 10px;border-radius:8px;background:rgba(255,255,255,0.02)}
+.ping.good{border:1px solid rgba(30,144,255,0.12)}
+.ping.warn{border:1px solid rgba(255,165,0,0.12)}
+.ping.bad{border:1px solid rgba(255,59,59,0.12);color:var(--danger)}
+
+#doom{
+  position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+  background:var(--danger);color:#111;padding:28px 36px;border-radius:12px;
+  font-weight:900;letter-spacing:1px;font-size:18px;text-align:center;
+  box-shadow:0 20px 60px rgba(255,59,59,0.25);
+  z-index:9999;
+}
+
+/* subtle animations */
+@keyframes floaty {
+  0%{transform:translateY(0)}
+  50%{transform:translateY(-6px)}
+  100%{transform:translateY(0)}
+}
+.card{animation:floaty 6s ease-in-out infinite}
+
+/* responsive */
+@media (max-width:640px){
+  .row{flex-direction:column}
+  .controls{flex-direction:column}
+  .card{padding:14px}
 }

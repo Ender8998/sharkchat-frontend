@@ -1,7 +1,7 @@
 // app.js - SharkChat (JSONP signaling ready)
 // Replace GAS_URL with your Apps Script exec URL (the /exec URL).
 // Leave WORKER_WSS_URL for later Cloudflare WSS (optional).
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzwEC0um4hPKhM_hl6MjV0ZD8pmHBUaQMbUnza9guMxM5VsdzPQOHzjvMPIBNXkKo7uqw/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzdKisI8OYiV1nyu4UYI32XO3UP4SYxXjAgVCYXhJuUw_YpoLslDQHM48j7UABNkflt/exec';
 const WORKER_WSS_URL = 'wss://REPLACE_WITH_YOUR_WORKER_DOMAIN/ws';
 
 const POLL_INTERVAL = 1500;
@@ -72,9 +72,9 @@ async function tryConnectWSS() {
       usingWSS = false;
       log('WSS closed, falling back to polling');
     };
-    ws.onerror = () => {
+    ws.onerror = (err) => {
       usingWSS = false;
-      log('WSS error, using polling');
+      log('WSS error, using polling: ' + err);
     };
   } catch (err) {
     usingWSS = false;
@@ -112,6 +112,9 @@ function createPeerConnection() {
   };
   pc.onicecandidate = e => {
     if (e.candidate) sendSignal({ type: 'ice', candidate: e.candidate });
+  };
+  pc.onconnectionstatechange = () => {
+    log('PC state: ' + pc.connectionState);
   };
   return pc;
 }

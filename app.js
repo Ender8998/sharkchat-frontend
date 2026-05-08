@@ -1,7 +1,7 @@
 // app.js
 // Replace GAS_URL with your Apps Script exec URL before publishing
 // Leave WORKER_WSS_URL for later Cloudflare WSS (optional)
-const GAS_URL = 'https://script.google.com/macros/s/REPLACE_WITH_YOUR_DEPLOY_ID/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzwEC0um4hPKhM_hl6MjV0ZD8pmHBUaQMbUnza9guMxM5VsdzPQOHzjvMPIBNXkKo7uqw/exec';
 const WORKER_WSS_URL = 'wss://REPLACE_WITH_YOUR_WORKER_DOMAIN/ws';
 
 const POLL_INTERVAL = 1500;

@@ -54,15 +54,19 @@
           <div id="log" class="log"></div>
         </div>
       </section>
-
-      <div id="doom" class="hidden">
-        THE LAST HOPE IS DEAD. WE FALL INTO DARKNESS FOREVER
-      </div>
     </main>
 
     <footer>
       <small>SharkChat • WebRTC • Codespaces</small>
     </footer>
+  </div>
+
+  <!-- Full-screen doom overlay -->
+  <div id="doomOverlay" class="hidden" role="alert" aria-live="assertive">
+    <div id="doomBackdrop"></div>
+    <div id="doomMessage">
+      THE LAST HOPE IS DEAD. WE FALL INTO DARKNESS FOREVER
+    </div>
   </div>
 
   <script src="app.js"></script>

@@ -25,7 +25,8 @@ const logEl = document.getElementById("log");
 const pingValueEl = document.getElementById("pingValue");
 const pingIndicator = document.getElementById("pingIndicator");
 const connectionStateEl = document.getElementById("connectionState");
-const doomEl = document.getElementById("doom");
+const doomOverlay = document.getElementById("doomOverlay");
+const doomMessage = document.getElementById("doomMessage");
 
 // ---------------------------
 //  STATE
@@ -40,6 +41,13 @@ let lastPing = 0;
 let pingTimer = null;
 let pingFailCount = 0;
 let members = {}; // id -> {name,color}
+let pendingPings = new Map(); // id -> timestamp
+
+// thresholds
+const PING_INTERVAL = 4000;
+const WS_PONG_TIMEOUT = 2000;
+const FAIL_THRESHOLD = 3;
+const LATENCY_DOOM_MS = 3000;
 
 // ---------------------------
 //  UTIL
@@ -61,7 +69,7 @@ function setConnectionState(text){
 }
 
 // ---------------------------
-//  WEBSOCKET SIGNALING
+//  WEBSOCKET SIGNALING + PING
 // ---------------------------
 function connectWS(){
   ws = new WebSocket(WS_URL);
@@ -75,6 +83,19 @@ function connectWS(){
   ws.onmessage = (ev) => {
     let data;
     try { data = JSON.parse(ev.data); } catch(e){ return; }
+
+    // handle server pong for our ping
+    if (data.action === "pong" && data.pingId){
+      const sent = pendingPings.get(data.pingId);
+      if (sent){
+        const rtt = Math.round(performance.now() - sent);
+        pendingPings.delete(data.pingId);
+        lastPing = rtt;
+        pingFailCount = 0;
+        updatePingIndicator(rtt);
+      }
+      return;
+    }
 
     if (data.action === "created"){
       currentRoom = data.code;
@@ -118,6 +139,112 @@ function sendWS(obj){
   ws.send(JSON.stringify(obj));
 }
 
+// send a ping over WebSocket and expect server to reply with {action:"pong", pingId}
+function wsPing(){
+  if (!ws || ws.readyState !== WebSocket.OPEN) return Promise.reject();
+  const id = Math.random().toString(36).slice(2,10);
+  pendingPings.set(id, performance.now());
+  sendWS({ action: "ping", pingId: id });
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      if (pendingPings.has(id)) pendingPings.delete(id);
+      reject(new Error("pong timeout"));
+    }, WS_PONG_TIMEOUT);
+    // resolution happens in onmessage when pong arrives
+    const check = setInterval(() => {
+      if (!pendingPings.has(id)){
+        clearTimeout(timeout);
+        clearInterval(check);
+        resolve();
+      }
+    }, 50);
+  });
+}
+
+// fallback HTTP ping
+async function httpPing(){
+  const start = performance.now();
+  try {
+    await fetch(PING_URL, {cache:"no-store", mode:"cors"});
+    const elapsed = Math.round(performance.now() - start);
+    lastPing = elapsed;
+    pingFailCount = 0;
+    updatePingIndicator(elapsed);
+    return elapsed;
+  } catch (e){
+    pingFailCount++;
+    updatePingIndicator(null);
+    log("HTTP ping failed");
+    return null;
+  }
+}
+
+async function pingOnce(){
+  // prefer WebSocket ping if available
+  if (ws && ws.readyState === WebSocket.OPEN){
+    try {
+      await wsPing();
+      // wsPing sets lastPing via pong handler
+      return;
+    } catch (e){
+      // ws ping failed, try HTTP fallback
+      await httpPing();
+      return;
+    }
+  } else {
+    await httpPing();
+  }
+}
+
+function updatePingIndicator(ms){
+  pingIndicator.classList.remove("good","warn","bad");
+  if (ms === null || typeof ms === "undefined"){
+    pingIndicator.classList.add("bad");
+    pingIndicator.textContent = "Ping: — ms";
+  } else if (ms < 150){
+    pingIndicator.classList.add("good");
+    pingIndicator.textContent = `Ping: ${ms} ms`;
+  } else if (ms < 500){
+    pingIndicator.classList.add("warn");
+    pingIndicator.textContent = `Ping: ${ms} ms`;
+  } else {
+    pingIndicator.classList.add("bad");
+    pingIndicator.textContent = `Ping: ${ms} ms`;
+  }
+
+  // doom condition
+  if (pingFailCount >= FAIL_THRESHOLD || (ms !== null && ms > LATENCY_DOOM_MS)){
+    showDoom();
+  } else {
+    hideDoom();
+  }
+}
+
+function startPingLoop(){
+  if (pingTimer) clearInterval(pingTimer);
+  pingOnce();
+  pingTimer = setInterval(pingOnce, PING_INTERVAL);
+}
+
+function stopPingLoop(){
+  if (pingTimer) clearInterval(pingTimer);
+  pingTimer = null;
+}
+
+function showDoom(){
+  doomOverlay.classList.remove("hidden");
+}
+
+function hideDoom(){
+  doomOverlay.classList.add("hidden");
+}
+
+function showDoomIfNeeded(){
+  if (!ws || ws.readyState !== WebSocket.OPEN){
+    showDoom();
+  }
+}
+
 // ---------------------------
 //  ROOM / MEMBERS UI
 // ---------------------------
@@ -141,75 +268,6 @@ function renderMembers(){
                     <div>${escapeHtml(m.name)}</div>`;
     memberList.appendChild(el);
   });
-}
-
-// ---------------------------
-//  PING / LATENCY
-// ---------------------------
-async function pingOnce(){
-  const start = performance.now();
-  try {
-    const res = await fetch(PING_URL, {cache:"no-store", mode:"cors"});
-    const elapsed = Math.round(performance.now() - start);
-    lastPing = elapsed;
-    pingValueEl.textContent = elapsed;
-    pingFailCount = 0;
-    updatePingIndicator(elapsed);
-  } catch (e){
-    pingFailCount++;
-    pingValueEl.textContent = "—";
-    updatePingIndicator(null);
-    log("Ping failed");
-  }
-}
-
-function updatePingIndicator(ms){
-  pingIndicator.classList.remove("good","warn","bad");
-  if (ms === null){
-    pingIndicator.classList.add("bad");
-    pingIndicator.textContent = "Ping: — ms";
-  } else if (ms < 150){
-    pingIndicator.classList.add("good");
-    pingIndicator.textContent = `Ping: ${ms} ms`;
-  } else if (ms < 500){
-    pingIndicator.classList.add("warn");
-    pingIndicator.textContent = `Ping: ${ms} ms`;
-  } else {
-    pingIndicator.classList.add("bad");
-    pingIndicator.textContent = `Ping: ${ms} ms`;
-  }
-  // doom condition
-  if (pingFailCount >= 3 || (ms !== null && ms > 3000)){
-    showDoom();
-  } else {
-    hideDoom();
-  }
-}
-
-function startPingLoop(){
-  if (pingTimer) clearInterval(pingTimer);
-  pingOnce();
-  pingTimer = setInterval(pingOnce, 5000);
-}
-
-function stopPingLoop(){
-  if (pingTimer) clearInterval(pingTimer);
-  pingTimer = null;
-}
-
-function showDoom(){
-  doomEl.classList.remove("hidden");
-}
-
-function hideDoom(){
-  doomEl.classList.add("hidden");
-}
-
-function showDoomIfNeeded(){
-  // show doom if disconnected and no ping
-  if (!ws || ws.readyState !== WebSocket.OPEN){
-    showDoom();
-  }
 }
 
 // ---------------------------
@@ -250,7 +308,6 @@ async function handleSignal(payload){
   if (!payload) return;
 
   if (payload.type === "offer"){
-    // incoming offer: create peer, add local stream, answer
     if (!localStream){
       try { localStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
       catch(e){ log("Microphone access denied"); return; }
@@ -271,7 +328,6 @@ async function handleSignal(payload){
       audio.play().catch(()=>{});
     };
 
-    // if offer contains meta, add member
     if (payload.meta && payload.meta.name){
       addMember(payload.meta.name + Math.random().toString(36).slice(2,5), payload.meta.name, payload.meta.color || "#888");
     }
@@ -373,6 +429,4 @@ avatarColorInput.addEventListener("input", updateAvatarPreview);
 updateAvatarPreview();
 connectWS();
 log("Client started");
-
-// ensure doom hidden initially
 hideDoom();

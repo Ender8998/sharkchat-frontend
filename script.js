@@ -1,5 +1,5 @@
 const peer = new Peer({
-  host: "<your-codespace>-3000.app.github.dev",
+  host: "organic-waffle-p64g9xq965qfrrw4-3000.app.github.dev",
   secure: true,
   port: 443,
   path: "/"

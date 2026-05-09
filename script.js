@@ -5,6 +5,11 @@ const peer = new Peer({
   path: "/"
 });
 
+peer.on("open", id => {
+  console.log("My peer ID is:", id);
+  document.body.insertAdjacentHTML("beforeend", `<p>Your ID: <b>${id}</b></p>`);
+});
+
 navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
   peer.on("call", call => {
     call.answer(stream);
